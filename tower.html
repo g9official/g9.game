@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>tower Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+
+<body>
+  <div id="app">
+    <h1>tower Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+      {{}}
+      <select class="border" placeholder="Mode" v-model="modeValue">
+        <option :value="0">Easy</option>
+        <option :value="1">Medium</option>
+        <option :value="2">Hard</option>
+        <option :value="3">Exterme</option>
+        <option :value="4">Nightmare</option>
+      </select>
+    </div>
+
+
+    <h2>Result</h2>
+    <h5>Final VerifyResult</h5>
+    <pre><code>CryptoJS.HmacSHA256([client_seed, nonce, i].join(":"), server_seed)</code></pre>
+
+    <ul class="flex items-center mt-3">
+      <li class="flex-1 flex flex-col gap-1">
+        <div class="flex gap-1 text-center" v-for="(list, i) in result" :key="i">
+          <span class="flex-1 bg-gray-100 py-2" v-for="(item, j) in list" :key="j">{{item}}</span>
+        </div>
+      </li>
+      <li class="w-[20%] text-center">➡</li>
+      <li class="flex-1 flex flex-col gap-1">
+        <div class="flex gap-1 text-center" v-for="(list, i) in viewMaps" :key="i">
+          <span class="flex-1 bg-gray-100 py-2" v-for="(item, j) in list" :key="j">{{item}}</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+</body>
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+  createApp({
+
+    setup() {
+      const { c, s, n, m } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(parseInt(n ?? '0'));
+      const modeValue = ref(m ?? 0);
+
+      // const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+      // const clientNonceHash = computed(() => CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+
+      const difficultyLevels = [
+        { label: "Easy", value: 0, totalChose: 4, errorChose: 1, level: 9 },
+        { label: "Medium", value: 1, totalChose: 3, errorChose: 1, level: 9 },
+        { label: "Hard", value: 2, totalChose: 2, errorChose: 1, level: 9 },
+        { label: "Extreme", valuehmac_sha256: 3, totalChose: 3, errorChose: 2, level: 6 },
+        { label: "Nightmare", value: 4, totalChose: 4, errorChose: 3, level: 6 },
+      ];
+
+      const modeInfo = computed(() => difficultyLevels[modeValue.value]);
+
+      const result = computed(() => {
+        const result = [];
+        for (let i = 0; i < modeInfo.value.level; i++) {
+          const winList = [];
+          const hmacSha256Result = CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value, i].join(":"), serverSeed.value).toString();
+          const tower = [];
+          for (let t = 1; t <= modeInfo.value.totalChose; t++) tower.push(t);
+          for (let j = 0; j < (modeInfo.value.totalChose - modeInfo.value.errorChose); j++) {
+            const event = calculateIndexFromHash(hmacSha256Result, j, tower.length);
+            winList.push(tower[event]);
+            tower.splice(event, 1);
+          }
+          result.push(winList);
+        }
+        return result;
+      });
+
+      const viewMaps = computed(() => {
+        return Array(modeInfo.value.level).fill(1).map((round, i) => {
+          return Array(modeInfo.value.totalChose).fill(1).map((field, j) => {
+            const isRight = result.value[i].includes(j + 1);
+            return isRight ? `✅${j + 1}` : `❌${j + 1}`
+          })
+        })
+      });
+
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        modeValue,
+        // serverSeedHash,
+        // clientNonceHash,
+        result,
+        viewMaps,
+      };
+    },
+  }).mount('#app');
+
+
+  function convertBytesToNumbers(bytes) {
+    const result = [];
+    for (let i = 0; i < bytes.length; i += 2) {
+      let dext = bytes[i] + bytes[i + 1]
+      let hext = helpers.parseInt16(dext)
+      result.push(hext)
+    }
+    return result;
+  }
+  function calculateIndexFromHash(hmacSha256Result, j, length) {
+    const bytes = hmacSha256Result.substring(j * 8, (j + 1) * 8);
+    const resultList = convertBytesToNumbers(bytes);
+    const step1 = resultList[0] / (256 ** 1);
+    const step2 = resultList[1] / (256 ** 2);
+    const step3 = resultList[2] / (256 ** 3);
+    const step4 = resultList[3] / (256 ** 4);
+    const total = step1 + step2 + step3 + step4;
+    return Math.floor(total * length);
+  }
+</script>
+
+</html>

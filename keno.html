@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>keno Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+
+<body>
+  <div id="app">
+    <h1>keno Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+    </div>
+
+    <h2>Result</h2>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-center text-[20px]">
+        <tbody>
+          <tr class="flex">
+            <td class="border p-1 flex-1" v-for="(item, index) in result" :key="index">{{ item }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
+  </div>
+</body>
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+
+  createApp({
+    setup() {
+      const { c, s, n } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(parseInt(n ?? '0'));
+      const numLen = 10;
+
+      // const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+      // const clientNonceHash = computed(() => CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+
+      const allNumbers = [
+        1, 30, 11, 40, 2, 29, 12, 39, 3, 28, 13, 38, 4, 27, 14, 37, 5, 26,
+        15, 36, 6, 25, 16, 35, 7, 24, 17, 34, 8, 23, 18, 33, 9, 22, 19, 32,
+        10, 21, 20, 31,
+      ];
+
+      const hmacHash = computed(() => CryptoJS.HmacSHA512([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+      const hmacHash256 = computed(() => CryptoJS.SHA256(hmacHash.value).toString());
+
+      const sortedNumbers = computed(() => {
+        const numberResult = [];
+        let hash = hmacHash256.value;
+        allNumbers.forEach((num) => {
+          numberResult.push({ num, hash });
+          hash = hash.substring(1) + hash.charAt(0);
+        });
+        numberResult.sort((a, b) => a.hash.localeCompare(b.hash));
+        return numberResult;
+      })
+
+      const result = computed(() => {
+        const numberResult = [];
+        for (const o of sortedNumbers.value.slice(0, numLen)) {
+          numberResult.push(o.num);
+        }
+        numberResult.sort((a, b) => a - b);
+        return numberResult;
+      });
+
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        // serverSeedHash,
+        // clientNonceHash,
+        result,
+      };
+    },
+  }).mount('#app');
+</script>
+
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ultimate-dice Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+
+<body>
+  <div id="app">
+    <h1>ultimate-dice Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+    </div>
+
+    <h2>Output</h2>
+    <h5>Final VerifyHash</h5>
+    <pre><code>CryptoJS.sha256(server_seed)</code></pre>
+    <input class="border" readonly :value="serverSeedHash ">
+
+    <p class="pt-3"></p>
+
+    <pre><code>CryptoJS.HmacSHA256([client_seed ,nonce].join(":"), server_seed)</code></pre>
+    <input class="border" readonly :value="clientNonceHash ">
+
+    <h2>Result</h2>
+    <h5>Final VerifyResult</h5>
+    <pre><code>CryptoJS.HmacSHA256([client_seed ,nonce].join(":"), server_seed)</code></pre>
+
+
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <tbody>
+          <tr>
+            <td class="border p-1" v-for="(item, index) in result['dec']" :key="index"
+              :style="{color: index > 3? 'gray' : ''}">{{ item }}</td>
+          </tr>
+          <tr>
+            <td class="border p-1" v-for="(item, index) in result['hex']" :key="index"
+              :style="{color: index > 3? 'gray' : ''}">{{ item }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pt-3"></p>
+
+    <h5>Bytes to Number</h5>
+    <pre v-html="BytesToNumber"></pre>
+  </div>
+</body>
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+  createApp({
+
+    setup() {
+      const { c, s, n } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(parseInt(n ?? '0'));
+
+      const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+      const clientNonceHash = computed(() => CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+
+      const result = computed(() => {
+        const hexValues = [];
+        const decValues = [];
+        for (let i = 0; i < clientNonceHash.value.length; i += 2) {
+          const hex = clientNonceHash.value.slice(i, i + 2);
+          decValues.push(hex);
+          hexValues.push(helpers.parseInt16(hex));
+        }
+        return { dec: decValues, hex: hexValues };
+      });
+
+      const BytesToNumber = computed(() => {
+        const h = result.value['hex'];
+        const finalResult = (h.reduce((acc, val, i) => acc + val / (256 ** (i + 1)), 0)).toFixed(9);
+
+        return /*js*/`(${h[0]}, ${h[1]}, ${h[2]}, ${h[3]}) -> [0, ... 4] = <span style="color: green;">${Math.floor(finalResult * 10000)}</span>
+     ${Number(h[0] / (256 ** 1)).toFixed(9)}    (${h[0]} / (256 ^ 1))
++    ${Number(h[1] / (256 ** 2)).toFixed(9)}    (${h[1]} / (256 ^ 2))
++    ${Number(h[2] / (256 ** 3)).toFixed(9)}    (${h[2]} / (256 ^ 3))
++    ${Number(h[3] / (256 ** 4)).toFixed(9)}    (${h[3]} / (256 ^ 4))
+=    ${(finalResult * 10000).toFixed(6)}    (* 10000)
+=    <span style="color: green;">${Math.floor(finalResult * 10000)}</span>
+`;
+      })
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        serverSeedHash,
+        clientNonceHash,
+        result,
+        BytesToNumber,
+      };
+    },
+  }).mount('#app');
+</script>
+
+</html>

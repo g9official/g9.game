@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>plinko Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/plinko.css">
+</head>
+
+
+<body>
+  <div id="app">
+    <h1>plinko Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+    </div>
+
+    <h2>Output</h2>
+    <h5>Final VerifyHash</h5>
+    <pre><code>CryptoJS.sha256(server_seed)</code></pre>
+    <input class="border" readonly :value="serverSeedHash ">
+
+    <p class="pt-3"></p>
+
+    <pre><code>CryptoJS.HmacSHA512(`${client_seed}:${nonce}`, server_seed)</code></pre>
+    <input class="border" readonly :value="clientNonceHash ">
+
+    <h2>Result</h2>
+    <h5>Final VerifyResult</h5>
+    <!-- <pre><code>CryptoJS.HmacSHA512(`${client_seed}:${nonce}`, server_seed)</code></pre> -->
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-center">
+        <thead>
+          <tr>
+            <td class="border p-1"><b>#</b></td>
+            <td class="border p-1" v-for="(item, index) in resultHashs" :key="index">{{ index }}</td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border p-1"><b class="Hex">Hex</b></td>
+            <td class="border p-1" v-for="(item, index) in resultHashs" :key="index">{{ item }}</td>
+          </tr>
+          <tr>
+            <td class="border p-1"><b class="Base 10">Base 10</b></td>
+            <td class="border p-1" v-for="(item, index) in resultHashs" :key="index">{{ parseInt16(item) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pt-3"></p>
+
+    <h5>Each set of 4 bytes is transformed into a number in the range [0, 1). For simplicity, only the initial
+      calculation is presented.</h5>
+    <pre v-html="BytesToNumber"></pre>
+
+    <p class="pt-3"></p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-center">
+        <thead>
+          <tr>
+            <th class="border">Pin #</th>
+            <th class="border">Number</th>
+            <th class="border">Number*2</th>
+            <th class="border">Direction</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(num, index) in result">
+            <td class="border">{{ index+1 }}</td>
+            <td class="border">{{ num }}</td>
+            <td class="border">{{ num*2 }}</td>
+            <td class="border">{{ num>.5?'Right':'Left' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    <h2>View</h2>
+
+    <div class="flex flex-col gap-3">
+      <select class="border" name="RiskValue" placeholder="RiskValue" v-model="RiskValue">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+
+      <select class="border" name="RowValue" placeholder="RowValue" v-model="RowValue">
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+        <option value="13">13</option>
+        <option value="14">14</option>
+        <option value="15">15</option>
+        <option value="16">16</option>
+      </select>
+    </div>
+
+    <p class="pt-3"></p>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-center" style="text-align: center;">
+        <thead>
+          <tr>
+            <th class="border" v-for="(item,i) in resultOdds" :style="{color:i===resultIdex?'#29e629':''}">{{i}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border" v-for="(item, i) in resultOdds" :style="{color:i===resultIdex?'#29e629':''}">{{ item }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="pt-3"></p>
+
+    <div>
+      <div class="box-scale">
+        <div v-for="(list,i) in mapData" class="flex justify-center">
+          <span v-for="(item,j) in list" style="padding: 5px;"
+            :class="{'path':item===0, 'last':i===mapData.length-1 && j>0, 'left':pathNums[i]===0,'right':pathNums[i]===1 }"
+            :data-text="j-1">⭕</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="pt-[200px]"></p>
+  </div>
+</body>
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+  const parseInt16 = helpers.parseInt16;
+
+  createApp({
+
+    setup() {
+      const { c, s, n, r, l } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(parseInt(n ?? '0'));
+      const RiskValue = ref(r || ['Low', 'Medium', 'High'][0]);
+      const RowValue = ref(l || 8 * 2);
+
+      const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+      const clientNonceHash = computed(() => CryptoJS.HmacSHA512([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+      const resultHashs = computed(() => clientNonceHash.value.match(/.{2}/g) || []);
+
+      const result = computed(() => {
+        const h = resultHashs.value;
+        const res = [];
+        for (let i = 0; i < h.length; i += 4) {
+          const num = parseInt16(h[i + 0]) / (256 ** 1) +
+            parseInt16(h[i + 1]) / (256 ** 2) +
+            parseInt16(h[i + 2]) / (256 ** 3) +
+            parseInt16(h[i + 3]) / (256 ** 4);
+          res.push(num);
+        }
+        return res;
+      });
+
+      const BytesToNumber = computed(() => {
+        const h = resultHashs.value;
+        return `
+(${parseInt16(h[0])}/256^1) + (${parseInt16(h[1])}/256^2) + (${parseInt16(h[2])}/256^3) + (${parseInt16(h[3])}/256^4)
+= (${parseInt16(h[0]) / (256)}) + (${parseInt16(h[1]) / (256 ** 2)}) + (${parseInt16(h[2]) / (256 ** 3)}) + (${parseInt16(h[0]) / (256 ** 4)})
+= (${parseInt16(h[0]) / (256) + parseInt16(h[1]) / (256 ** 2) + parseInt16(h[2]) / (256 ** 3) + parseInt16(h[3]) / (256 ** 4)})   
+`
+      });
+
+      // view
+      const odds = {
+        'Low': [
+          ['5.6x', '2.1x', '1.1x', '1.0x', '0.5x', '1.0x', '1.1x', '2.1x', '5.6x',],
+          ['5.6x', '2.0x', '1.6x', '1.0x', '0.7x', '0.7x', '1.0x', '1.6x', '2.0x', '5.6x',],
+          ['8.9x', '3.0x', '1.4x', '1.1x', '1.0x', '0.5x', '1.0x', '1.1x', '1.4x', '3.0x', '8.9x',],
+          ['8.4x', '3.0x', '1.9x', '1.3x', '1.0x', '0.7x', '0.7x', '1.0x', '1.3x', '1.9x', '3.0x', '8.4x',],
+          ['10x', '3.0x', '1.6x', '1.4x', '1.1x', '1.0x', '0.5x', '1.0x', '1.1x', '1.4x', '1.6x', '3.0x', '10x',],
+          ['8.1x', '4.0x', '3.0x', '1.9x', '1.2x', '0.9x', '0.7x', '0.7x', '0.9x', '1.2x', '1.9x', '3.0x', '4.0x', '8.1x',],
+          ['7.1x', '4.0x', '1.9x', '1.4x', '1.3x', '1.1x', '1.0x', '0.5x', '1.0x', '1.1x', '1.3x', '1.4x', '1.9x', '4.0x', '7.1x',],
+          ['15x', '8.0x', '3.0x', '2.0x', '1.5x', '1.1x', '1.0x', '0.7x', '0.7x', '1.0x', '1.1x', '1.5x', '2.0x', '3.0x', '8.0x', '15x',],
+          ['16x', '9.0x', '2.0x', '1.4x', '1.4x', '1.2x', '1.1x', '1.0x', '0.5x', '1.0x', '1.1x', '1.2x', '1.4x', '1.4x', '2.0x', '9.0x', '16x',],
+        ],
+        'Medium': [
+          ['13x', '3.0x', '1.3x', '0.7x', '0.4x', '0.7x', '1.3x', '3.0x', '13x',],
+          ['18x', '4.0x', '1.7x', '0.9x', '0.5x', '0.5x', '0.9x', '1.7x', '4.0x', '18x',],
+          ['22x', '5.0x', '2.0x', '1.4x', '0.6x', '0.4x', '0.6x', '1.4x', '2.0x', '5.0x', '22x',],
+          ['24x', '6.0x', '3.0x', '1.8x', '0.7x', '0.5x', '0.5x', '0.7x', '1.8x', '3.0x', '6.0x', '24x',],
+          ['33x', '11x', '4.0x', '2.0x', '1.1x', '0.6x', '0.3x', '0.6x', '1.1x', '2.0x', '4.0x', '11x', '33x',],
+          ['43x', '13x', '6.0x', '3.0x', '1.3x', '0.7x', '0.4x', '0.4x', '0.7x', '1.3x', '3.0x', '6.0x', '13x', '43x',],
+          ['58x', '15x', '7.0x', '4.0x', '1.9x', '1.0x', '0.5x', '0.2x', '0.5x', '1.0x', '1.9x', '4.0x', '7.0x', '15x', '58x',],
+          ['88x', '18x', '11x', '5.0x', '3.0x', '1.1x', '0.5x', '0.3x', '0.3x', '0.5x', '1.1x', '3.0x', '5.0x', '11x', '18x', '88x',],
+          ['110x', '41x', '10x', '5.0x', '3.0x', '1.5x', '1.0x', '0.5x', '0.3x', '0.5x', '1.0x', '1.5x', '3.0x', '5.0x', '10x', '41x', '110x',],
+        ],
+        'High': [
+          ['29x', '4.0x', '1.5x', '0.3x', '0.2x', '0.3x', '1.5x', '4.0x', '29x',],
+          ['43x', '7.0x', '2.0x', '0.6x', '0.2x', '0.2x', '0.6x', '2.0x', '7.0x', '43x',],
+          ['76x', '10x', '3.0x', '0.9x', '0.3x', '0.2x', '0.3x', '0.9x', '3.0x', '10x', '76x',],
+          ['120x', '14x', '5.2x', '1.4x', '0.4x', '0.2x', '0.2x', '0.4x', '1.4x', '5.2x', '14x', '120x',],
+          ['170x', '24x', '8.1x', '2.0x', '0.7x', '0.2x', '0.2x', '0.2x', '0.7x', '2.0x', '8.1x', '24x', '170x',],
+          ['260x', '37x', '11x', '4.0x', '1.0x', '0.2x', '0.2x', '0.2x', '0.2x', '1.0x', '4.0x', '11x', '37x', '260x',],
+          ['420x', '56x', '18x', '5.0x', '1.9x', '0.3x', '0.2x', '0.2x', '0.2x', '0.3x', '1.9x', '5.0x', '18x', '56x', '420x',],
+          ['620x', '83x', '27x', '8.0x', '3.0x', '0.5x', '0.2x', '0.2x', '0.2x', '0.2x', '0.5x', '3.0x', '8.0x', '27x', '83x', '620x',],
+          ['1000x', '130x', '26x', '9.0x', '4.0x', '2.0x', '0.2x', '0.2x', '0.2x', '0.2x', '0.2x', '2.0x', '4.0x', '9.0x', '26x', '130x', '1000x',],
+        ]
+      }
+      function creatMap(n = 16, m = 'x') {
+        const matrix = [];
+        for (let i = 0; i < n; i++) {
+          let arr = []
+          for (let j = 3 + i; j--;) {
+            if (arr.length == 0) {
+            }
+            arr.push(m)
+          }
+          matrix.push(arr)
+        }
+        return matrix;
+      }
+
+      const pathNums = computed(() => {
+        return result.value.map(function (num) {
+          return num > .5 ? 1 : 0
+        })
+      });
+
+      const mapData = computed(() => {
+        const list = creatMap(result.value.length);
+        let s = 1;
+        for (let i = 0; i < list.length; i++) {
+          if (i == 0) {
+            list[i][1] = 0;
+          } else {
+            s += pathNums.value[i - 1];
+            list[i][s] = 0;
+          }
+        }
+        return list
+      });
+
+      const resultOdds = computed(() => {
+        const Risks = odds[RiskValue.value] ?? [];
+        const Rows = Risks[RowValue.value - 8] ?? []
+        return Rows
+      });
+
+      const resultIdex = computed(() => {
+        const a = JSON.parse(JSON.stringify(mapData.value[mapData.value.length - 1]));
+        a.splice(0, 1);
+        let i = a.indexOf(0);
+        const n = pathNums.value[pathNums.value.length - 1];
+        if (n === 1) {
+          i += 1
+        }
+        return i
+      });
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        RiskValue,
+        RowValue,
+        serverSeedHash,
+        clientNonceHash,
+        result,
+        resultHashs,
+        BytesToNumber,
+        parseInt16,
+        // View
+        pathNums,
+        mapData,
+        resultOdds,
+        resultIdex,
+      };
+    },
+  }).mount('#app');
+</script>
+
+</html>

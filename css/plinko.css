@@ -1,0 +1,25 @@
+.path{position: relative;}
+.path::after {
+  content: '🟢';
+  position: absolute;
+  left: -11px;
+  top: 20px;
+}
+.right.path::after{
+  left: 21px;
+}
+.scale{transform-origin: top;}
+@media (min-width: 375px) { .scale{scale:0.6} }
+@media (min-width: 414px) { .scale{scale:0.7} }
+@media (min-width: 500px) { .scale{scale:0.8} }
+@media (min-width: 650px) { .scale{scale:0.9} }
+@media (min-width: 800px) { .scale{scale:1} }
+.last{position: relative;}
+.last::before{
+  content: attr(data-text);
+  position: absolute;
+  left: -5px;
+  top: 40px;
+  font-weight: bold;
+  font-size: 20px;
+}

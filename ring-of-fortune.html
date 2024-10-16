@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ring-of-fortune Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+
+<body>
+  <div id="app">
+    <h1>ring-of-fortune Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+    </div>
+
+    <h2>Output</h2>
+    <h5>Final VerifyHash</h5>
+    <pre><code>CryptoJS.sha256(server_seed)</code></pre>
+    <input class="border" readonly :value="serverSeedHash ">
+
+    <p class="pt-3"></p>
+
+    <pre><code>CryptoJS.HmacSHA256([client_seed ,nonce].join(":"), server_seed)</code></pre>
+    <input class="border" readonly :value="clientNonceHash ">
+
+    <h2>Result</h2>
+    <h5>Final VerifyResult</h5>
+    <input class="border" readonly :value="result ">
+
+    <p class="pt-3"></p>
+
+    <h5>Bytes to Number</h5>
+    <pre v-html="BytesToNumber"></pre>
+  </div>
+</body>
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+  createApp({
+
+    setup() {
+      const { c, s, n, he } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(parseInt(n ?? '0'));
+
+      const range1 = computed(() => he === '4' ? '1.93x' : '2x');
+      const range2 = computed(() => he === '4' ? '2.90x' : '3x');
+      const range3 = computed(() => he === '4' ? '5.81x' : '6x');
+      const range4 = computed(() => he === '4' ? '96x' : '99x');
+
+      const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+      const clientNonceHash = computed(() => CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+
+      const result = computed(() => helpers.calculateEventValue(clientNonceHash.value, 1000));
+
+      const BytesToNumber = computed(() => {
+        const isHighlight1 = result.value <= 495 ? 'text-green-500' : '';
+        const isHighlight2 = result.value >= 496 && result.value <= 825 ? 'text-green-500' : '';
+        const isHighlight3 = result.value >= 826 && result.value <= 990 ? 'text-green-500' : '';
+        const isHighlight4 = result.value >= 991 ? 'text-green-500' : '';
+        return /*html*/`
+<span class="${isHighlight1}">0~495 = ${range1.value}</span>
+<span class="${isHighlight2}">496~825 = ${range2.value}</span>
+<span class="${isHighlight3}">826~990 = ${range3.value}</span>
+<span class="${isHighlight4}">991~1000 = ${range4.value}</span>
+      `;
+      })
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        serverSeedHash,
+        clientNonceHash,
+        result,
+        BytesToNumber,
+      };
+    },
+  }).mount('#app');
+</script>
+
+</html>

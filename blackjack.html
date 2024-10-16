@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>baccarat Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+  <link rel="stylesheet" href="./css/card.css">
+</head>
+
+<body>
+  <div id="app">
+    <h1>baccarat Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+    </div>
+
+    <h2>Output</h2>
+    <h5>Final VerifyHash</h5>
+    <pre><code>CryptoJS.HmacSHA256([client_seed ,nonce].join(":"), server_seed)</code></pre>
+    <input class="border" readonly :value="clientNonceHash ">
+    <hr>
+
+    <h2>Result</h2>
+    <h5>Final VerifyResult</h5>
+    <div class="layout">
+      <div v-for="(card, index) in resultCardList" class="card w-[40px] h-[60px] relative"
+        :class="[card.flower === '♠' || card.flower === '♣' ? 'black' : 'red']" :key="index">
+        <div class="absolute right-[10px] bottom-[20px] text-[30px]">{{card.flower}}</div>
+        <div class="absolute left-[0px] top-[2px] w-[20px] text-center">{{card.point}}</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+  createApp({
+    setup() {
+      const { c, s, n } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(n ?? '');
+      const resultCardList = ref([]);
+      const CARD_POINTS = " ,A,2,3,4,5,6,7,8,9,10,J,Q,K".split(",");
+      const CARD_FLOWERS = ["♠", "♥", "♣", "♦"];
+      const orTimes = 4;
+      const cradsLen = 30;
+      const allCards = computed(() => {
+        return Array.from({ length: 4 }, (_, i) =>
+          Array.from({ length: 13 }, (_, j) => (i + 10) * 16 + (j + 1))
+        ).flat();
+      });
+      //   const allCards2 = [
+      //     161, 180, 199, 218, 162, 205, 181, 200, 219, 163, 182, 220, 201,
+      //     177, 196, 215, 170, 178, 221, 197, 216, 171, 179, 198, 172, 217,
+      //     193, 212, 167, 186, 194, 173, 213, 168, 187, 195, 214, 188, 169,
+      //     209, 164, 183, 202, 210, 189, 165, 184, 203, 211, 166, 204, 185,
+      //   ];
+
+      const clientNonceHash = computed(() => {
+        return CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString();
+      });
+
+      function generateCards(hash, times, cards, hashList) {
+        hashList.push(hash);
+        if (times <= 0) return;
+        let h = hash;
+        allCards.value.forEach((c) => {
+          cards.push({ card: c, hash: h });
+          h = h.substring(1) + h.charAt(0);
+        });
+        hash = CryptoJS.SHA256(hash).toString();
+        times--;
+        generateCards(hash, times, cards, hashList);
+      }
+
+      function createCardDeck(hash, times) {
+        times = times || orTimes;
+        let cards = [];
+        let hashList = [];
+        generateCards(hash, times, cards, hashList);
+        cards.sort((a, b) => a.hash.localeCompare(b.hash));
+        return cards;
+      }
+
+      function formatCard(card) {
+        let flowerIndex = (card & 240) / 16 - 10;
+        let flower = CARD_FLOWERS[flowerIndex];
+        let point = CARD_POINTS[card % 16];
+        return {
+          flower,
+          point,
+        };
+      }
+
+      function generateCardFrames(hash) {
+        let cardList = createCardDeck(hash);
+        return cardList.map(item => formatCard(item.card));
+      }
+
+      function updateDisplayedCards() {
+        const hash = clientNonceHash.value;
+        const cards = generateCardFrames(hash);
+        let displayedCards = [];
+        if (cards) {
+          displayedCards = cards.slice(0, cradsLen);
+          resultCardList.value = displayedCards;
+        }
+      }
+
+      watch(() => [nonceValue.value, clientSeed.value, serverSeed.value], updateDisplayedCards);
+      onMounted(updateDisplayedCards);
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        clientNonceHash,
+        resultCardList,
+      };
+    },
+  }).mount('#app');
+</script>
+
+</html>

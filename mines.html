@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>mines Verify</title>
+	<link rel="stylesheet" href="./css/main.css">
+</head>
+<style>
+	.result {
+		display: grid;
+		grid-template-rows: repeat(5, 40px);
+		grid-template-columns: repeat(5, 40px);
+		grid-gap: 40px;
+		justify-content: center;
+		margin-top: 40px;
+	}
+
+	.result li {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+</style>
+
+<body>
+	<div id="app">
+		<h1>mines Verify</h1>
+
+		<hr>
+
+		<h2>Input</h2>
+
+		<div class="flex flex-col gap-3">
+			<input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+			<input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+			<input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+			<input class="border" type="text" placeholder="Mines num" v-model="MinesValue">
+		</div>
+
+
+		<h2>Result</h2>
+		<h5>Final VerifyResult</h5>
+		<pre><code>CryptoJS.HmacSHA512(`${client_seed},${nonce}-${nonce_increase}`, server_seed)</code></pre>
+		<input class="border" readonly :value="result ">
+
+		<ul class="result">
+			<li v-for="(item, index) in CardsNum">
+				<span class="text-[60px]">{{ result.includes(index)? '💣' : '💎' }}</span>
+				<span class="absolute" :style="{color: result.includes(index)? 'aliceblue':'#000'}">{{ index }}</span>
+			</li>
+		</ul>
+	</div>
+</body>
+
+<script type="module">
+	import './js/tailwindcss.js';
+	import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+	import CryptoJS from './libs/crypto-js.js';
+	import * as helpers from './js/helpers.js';
+
+
+	createApp({
+		setup() {
+			const { c, s, n, num } = helpers.queryParams;
+			const clientSeed = ref(c ?? '');
+			const serverSeed = ref(s ?? '');
+			const nonceValue = ref(n ?? '');
+			const MinesValue = ref(num ?? '');
+
+			const RTP = 99.0;
+			const CardsNum = 25;
+			const chars = 2;
+
+			const minesNumber = computed(() => {
+				let value = Number(MinesValue.value);
+				if (isNaN(value)) { value = 1 }
+				return Math.max(1, Math.min(value, CardsNum));
+			});
+
+			// const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+			// const clientNonceHash = computed(() => CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString());
+
+			const result = computed(() => {
+				const uniqueIndexes = new Set();
+				const maxNumber = Math.floor(Math.pow(16, chars) / CardsNum) * CardsNum;
+				let nonceIncrease = 0;
+
+				while (uniqueIndexes.size < minesNumber.value) {
+					const hmacHash = CryptoJS.HmacSHA512(`${clientSeed.value},${nonceValue.value}-${nonceIncrease}`, serverSeed.value).toString();
+
+					for (let i = 0; i < Math.floor(128 / chars); i++) {
+						const hexSubstring = hmacHash.substring(i * chars, i * chars + chars);
+						const number = parseInt(hexSubstring, 16);
+
+						if (number < maxNumber) {
+							const index = number % CardsNum;
+							uniqueIndexes.add(index);
+
+							if (uniqueIndexes.size === minesNumber.value) {
+								break;
+							}
+						}
+					}
+					nonceIncrease++;
+				}
+				return Array.from(uniqueIndexes).sort((a, b) => a - b);
+			});
+
+			return {
+				clientSeed,
+				serverSeed,
+				nonceValue,
+				MinesValue,
+				CardsNum,
+				// serverSeedHash,
+				// clientNonceHash,
+				result,
+			};
+		},
+	}).mount('#app');
+</script>
+
+</html>

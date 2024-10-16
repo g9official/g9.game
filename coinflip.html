@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>coinflip Verify</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+
+
+<body>
+  <div id="app">
+    <h1>coinflip Verify</h1>
+
+    <hr>
+
+    <h2>Input</h2>
+    <div class="flex flex-col gap-3">
+      <input class="border" type="text" placeholder="Client Seed" v-model="clientSeed">
+      <input class="border" type="text" placeholder="Server Seed" v-model="serverSeed">
+      <input class="border" type="number" placeholder="Nonce" v-model="nonceValue">
+      <input class="border" type="text" placeholder="Rounds" v-model="roundValue">
+    </div>
+
+    <h2>Output</h2>
+    <h5>Final VerifyHash</h5>
+    <pre><code>CryptoJS.HmacSHA256([client_seed, nonce, round].join(":"), server_seed)</code></pre>
+    <div class="overflow-x-auto">
+      <table class="w-full text-center">
+        <thead>
+          <tr>
+            <th class="border p-1">Round</th>
+            <th class="border p-1">VerifyHash</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in clientNonceHashs" :key="index">
+            <td class="border p-1">{{ index+1 }}</td>
+            <td class="border p-1">{{ item }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Result</h2>
+    <h5>Final VerifyResult</h5>
+    <pre><code>CryptoJS.HmacSHA256([client_seed, nonce, round].join(":"), server_seed)</code></pre>
+    <div class="overflow-x-auto">
+      <table class="w-full text-center">
+        <thead>
+          <tr>
+            <th class="border p-1" v-for="(item, index) in results" :key="index">Round {{ index + 1 }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border p-1" v-for="(item, index) in results" :key="index">{{ item }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+
+<script type="module">
+  import './js/tailwindcss.js';
+  import { createApp, ref, watch, onMounted, computed } from './libs/vue.js';
+  import CryptoJS from './libs/crypto-js.js';
+  import * as helpers from './js/helpers.js';
+
+  createApp({
+    setup() {
+      const { c, s, n, r } = helpers.queryParams;
+      const clientSeed = ref(c ?? '');
+      const serverSeed = ref(s ?? '');
+      const nonceValue = ref(n ?? '');
+      const roundValue = ref(r ?? '10');
+
+      // const serverSeedHash = computed(() => CryptoJS.SHA256(CryptoJS.enc.Utf8.parse(serverSeed.value)).toString());
+      // const clientNonceHash = computed(() => CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value, roundValue.value].join(":"), serverSeed.value).toString());
+
+      const clientNonceHashs = computed(() => {
+        return Array(Number(roundValue.value)).fill(1).map((item, index) => {
+          const round = index + 1;
+          return CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value, round].join(":"), serverSeed.value).toString();
+        })
+      });
+
+      const results = computed(() => clientNonceHashs.value.map(clientNonceHash => Math.floor(helpers.calculateEventValue(clientNonceHash, 2))));
+      return {
+        clientSeed,
+        serverSeed,
+        nonceValue,
+        roundValue,
+        // serverSeedHash,
+        // clientNonceHash,
+        clientNonceHashs,
+        results
+      };
+    },
+  }).mount('#app');
+
+
+
+
+</script>
+
+</html>

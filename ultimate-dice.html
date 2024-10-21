@@ -3,13 +3,13 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>ultimate-dice Verify</title>
+  <title>ultimateDice Verify</title>
   <link rel="stylesheet" href="./css/main.css">
 </head>
 
 <body>
   <div id="app">
-    <h1>ultimate-dice Verify</h1>
+    <h1>ultimateDice Verify</h1>
 
     <hr>
 
@@ -90,13 +90,13 @@
         const h = result.value['hex'];
         const finalResult = (h.reduce((acc, val, i) => acc + val / (256 ** (i + 1)), 0)).toFixed(9);
 
-        return /*js*/`(${h[0]}, ${h[1]}, ${h[2]}, ${h[3]}) -> [0, ... 4] = <span style="color: green;">${Math.floor(finalResult * 10000)}</span>
+        return /*js*/`(${h[0]}, ${h[1]}, ${h[2]}, ${h[3]}) -> [0, ... 4] = <span style="color: #00ff00;">${Math.floor(finalResult * 10000)}</span>
      ${Number(h[0] / (256 ** 1)).toFixed(9)}    (${h[0]} / (256 ^ 1))
 +    ${Number(h[1] / (256 ** 2)).toFixed(9)}    (${h[1]} / (256 ^ 2))
 +    ${Number(h[2] / (256 ** 3)).toFixed(9)}    (${h[2]} / (256 ^ 3))
 +    ${Number(h[3] / (256 ** 4)).toFixed(9)}    (${h[3]} / (256 ^ 4))
 =    ${(finalResult * 10000).toFixed(6)}    (* 10000)
-=    <span style="color: green;">${Math.floor(finalResult * 10000)}</span>
+=    <span style="color: #00ff00;">${Math.floor(finalResult * 10000)}</span>
 `;
       })
       return {

@@ -3,13 +3,13 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>tower Verify</title>
+  <title>Tower Verify</title>
   <link rel="stylesheet" href="./css/main.css">
 </head>
 
 <body>
   <div id="app">
-    <h1>tower Verify</h1>
+    <h1>Tower Verify</h1>
 
     <hr>
 
@@ -37,7 +37,7 @@
     <ul class="flex items-center mt-3">
       <li class="flex-1 flex flex-col gap-1">
         <div class="flex gap-1 text-center" v-for="(list, i) in result" :key="i">
-          <span class="flex-1 bg-gray-100 py-2" v-for="(item, j) in list" :key="j">{{item}}</span>
+          <span class="flex-1 bg-gray-100 py-2" v-for="(item, j) in list.sort((a, b) => a - b)" :key="j">{{item}}</span>
         </div>
       </li>
       <li class="w-[20%] text-center">➡</li>
@@ -83,16 +83,16 @@
         for (let i = 0; i < modeInfo.value.level; i++) {
           const winList = [];
           const hmacSha256Result = CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value, i].join(":"), serverSeed.value).toString();
-          const tower = [];
-          for (let t = 1; t <= modeInfo.value.totalChose; t++) tower.push(t);
+          const Tower = [];
+          for (let t = 1; t <= modeInfo.value.totalChose; t++) Tower.push(t);
           for (let j = 0; j < (modeInfo.value.totalChose - modeInfo.value.errorChose); j++) {
-            const event = calculateIndexFromHash(hmacSha256Result, j, tower.length);
-            winList.push(tower[event]);
-            tower.splice(event, 1);
+            const event = calculateIndexFromHash(hmacSha256Result, j, Tower.length);
+            winList.push(Tower[event]);
+            Tower.splice(event, 1);
           }
           result.push(winList);
         }
-        return result;
+        return result.reverse();
       });
 
       const viewMaps = computed(() => {

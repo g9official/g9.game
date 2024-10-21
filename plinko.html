@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>plinko Verify</title>
+  <title>Plinko Verify</title>
   <link rel="stylesheet" href="./css/main.css">
   <link rel="stylesheet" href="./css/plinko.css">
 </head>
@@ -11,7 +11,7 @@
 
 <body>
   <div id="app">
-    <h1>plinko Verify</h1>
+    <h1>Plinko Verify</h1>
 
     <hr>
 
@@ -90,7 +90,7 @@
 
     <h2>View</h2>
 
-    <div class="flex flex-col gap-3">
+    <div class="flex gap-3">
       <select class="border" name="RiskValue" placeholder="RiskValue" v-model="RiskValue">
         <option value="Low">Low</option>
         <option value="Medium">Medium</option>
@@ -129,7 +129,6 @@
     </div>
 
     <p class="pt-3"></p>
-
     <div>
       <div class="box-scale">
         <div v-for="(list,i) in mapData" class="flex justify-center">
@@ -139,7 +138,6 @@
         </div>
       </div>
     </div>
-
     <p class="pt-[200px]"></p>
   </div>
 </body>
@@ -184,9 +182,9 @@
         return `
 (${parseInt16(h[0])}/256^1) + (${parseInt16(h[1])}/256^2) + (${parseInt16(h[2])}/256^3) + (${parseInt16(h[3])}/256^4)
 = (${parseInt16(h[0]) / (256)}) + (${parseInt16(h[1]) / (256 ** 2)}) + (${parseInt16(h[2]) / (256 ** 3)}) + (${parseInt16(h[0]) / (256 ** 4)})
-= (${parseInt16(h[0]) / (256) + parseInt16(h[1]) / (256 ** 2) + parseInt16(h[2]) / (256 ** 3) + parseInt16(h[3]) / (256 ** 4)})   
-`
-      });
+= (${parseInt16(h[0]) / (256) + parseInt16(h[1]) / (256 ** 2) + parseInt16(h[2]) / (256 ** 3) + parseInt16(h[3]) / (256 ** 4)})
+
+`});
 
       // view
       const odds = {
@@ -245,7 +243,7 @@
       });
 
       const mapData = computed(() => {
-        const list = creatMap(result.value.length);
+        const list = creatMap(result.value.length).splice(0,RowValue.value);
         let s = 1;
         for (let i = 0; i < list.length; i++) {
           if (i == 0) {

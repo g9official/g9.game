@@ -3,14 +3,14 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>blackjack Verify</title>
+  <title>Baccarat Verify</title>
   <link rel="stylesheet" href="./css/main.css">
   <link rel="stylesheet" href="./css/card.css">
 </head>
 
 <body>
   <div id="app">
-    <h1>blackjack Verify</h1>
+    <h1>Baccarat Verify</h1>
 
     <hr>
 
@@ -24,7 +24,7 @@
 
     <h2>Output</h2>
     <h5>Final VerifyHash</h5>
-    <pre><code>CryptoJS.HmacSHA256([client_seed ,nonce].join(":"), server_seed)</code></pre>
+    <pre><code>CryptoJS.HmacSHA256([client_seed ,nonce].join(""), server_seed)</code></pre>
     <input class="border" readonly :value="clientNonceHash ">
     <hr>
 
@@ -72,7 +72,7 @@
       //   ];
 
       const clientNonceHash = computed(() => {
-        return CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(":"), serverSeed.value).toString();
+        return CryptoJS.HmacSHA256([clientSeed.value, nonceValue.value].join(""), serverSeed.value).toString();
       });
 
       function generateCards(hash, times, cards, hashList) {

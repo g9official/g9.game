@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>mines Verify</title>
+	<title>Mines Verify</title>
 	<link rel="stylesheet" href="./css/main.css">
 </head>
 <style>
@@ -26,7 +26,7 @@
 
 <body>
 	<div id="app">
-		<h1>mines Verify</h1>
+		<h1>Mines Verify</h1>
 
 		<hr>
 
@@ -73,7 +73,7 @@
 			const CardsNum = 25;
 			const chars = 2;
 
-			const minesNumber = computed(() => {
+			const MinesNumber = computed(() => {
 				let value = Number(MinesValue.value);
 				if (isNaN(value)) { value = 1 }
 				return Math.max(1, Math.min(value, CardsNum));
@@ -87,7 +87,7 @@
 				const maxNumber = Math.floor(Math.pow(16, chars) / CardsNum) * CardsNum;
 				let nonceIncrease = 0;
 
-				while (uniqueIndexes.size < minesNumber.value) {
+				while (uniqueIndexes.size < MinesNumber.value) {
 					const hmacHash = CryptoJS.HmacSHA512(`${clientSeed.value},${nonceValue.value}-${nonceIncrease}`, serverSeed.value).toString();
 
 					for (let i = 0; i < Math.floor(128 / chars); i++) {
@@ -98,7 +98,7 @@
 							const index = number % CardsNum;
 							uniqueIndexes.add(index);
 
-							if (uniqueIndexes.size === minesNumber.value) {
+							if (uniqueIndexes.size === MinesNumber.value) {
 								break;
 							}
 						}

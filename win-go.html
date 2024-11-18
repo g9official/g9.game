@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Win Go verify</title>
+    <link rel="stylesheet" href="./lib/main.css" />
+    <link rel="stylesheet" href="./lib/bootstrap/css/bootstrap.min.css" />
+    <script src="./lib/crypto-js.js"></script>
+    <script src="./lib/tools.js"></script>
+    <script src="./lib/vue3.js"></script>
+    <style>
+      [v-cloak] {
+        display: none !important;
+      }
+
+      .result-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .result {
+        display: table-cell;
+        padding: 0.5em 1em;
+        width: 2em;
+        height: 2em;
+        font-size: 1.5em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app" class="main" v-cloak>
+      <h1 class="text-center pb-5">Win Go verify</h1>
+      <hr />
+      <form class="py-5">
+        <h2 class="text-center">Input</h2>
+        <div class="form-group">
+          <input
+            :value="hash"
+            @change="hash = $event.target.value"
+            class="form-control"
+            placeholder="Hash"
+          />
+        </div>
+
+        <div class="form-group">
+          <input
+            :value="salt"
+            @change="salt = $event.target.value"
+            class="form-control"
+            placeholder="Salt"
+          />
+        </div>
+      </form>
+      <h2 class="text-center">Result</h2>
+      <div class="text-center">{{result}}</div>
+    </div>
+
+    <script>
+      const { createApp, reactive, toRefs, ref, onMounted, watch } = Vue;
+
+      const app = createApp({
+        setup() {
+          const salt = ref(
+            "00000000029c70bc32d1c9d06ce111871b552abc84cdc50bc196454039363049"
+          );
+          const result = ref(0);
+          const hash = ref("");
+          onMounted(() => {
+            let qs = tools.queryString();
+            let h = qs.h || "";
+            if (h != "") {
+              hash = h;
+            }
+          });
+
+          function getResult(hash) {
+            var hmacSha256Result = String(
+              CryptoJS.HmacSHA256(hash, salt.value)
+            );
+            result.value = Math.floor(slideWindowNumber(hmacSha256Result, 10));
+        
+          }
+          function slideWindowNumber(hash, events) {
+            const MAX_BORDER = Math.pow(2, -53);
+            let index = BigInt("0x" + hash.substring(0, 15));
+            index = Number(index % BigInt(10));
+            let num =
+              BigInt("0x" + hash.substring(index, index + 14)) >> BigInt(3);
+            num = Number(num) * MAX_BORDER;
+            return num * events;
+          }
+          watch(
+            () => [hash.value],
+            async ([newHash], [oldHash]) => {
+              if (newHash == "") {
+                return;
+              }
+              //
+              getResult(newHash);
+            }
+          );
+
+          return {
+            hash,
+            salt,
+            result,
+            getResult,
+            slideWindowNumber,
+          };
+        },
+      });
+      app.mount("#app");
+    </script>
+  </body>
+</html>
